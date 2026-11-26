@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Realce e detecção de bordas com os filtros de Gabor e de Weickert, direto no navegador: abra uma imagem, mexa nos parâmetros e compare antes e depois.">
+<meta name="theme-color" content="#0c0b0a">
+<title>Realce de bordas: Weickert e Gabor</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230c0b0a'/%3E%3Cpath d='M4 17c3 0 3-9 6-9s3 16 6 16 3-16 6-16 3 9 6 9' fill='none' stroke='%23e98f47' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<a class="pular" href="#palco">Ir para a imagem</a>
+
+<header class="topo">
+  <div class="marca">
+    <span class="marca-logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12.5c2.3 0 2.3-7 4.6-7s2.3 13 4.6 13 2.3-13 4.6-13 2.3 7 4.6 7"/></svg></span>
+    <div>
+      <h1>Realce de bordas</h1>
+      <p>Filtros de Weickert e de Gabor · Processamento Digital de Imagens</p>
+    </div>
+  </div>
+  <div class="acoes">
+    <span class="arquivo-nome" id="nome-arquivo" title="Nenhuma imagem aberta">Nenhuma imagem aberta</span>
+    <input type="file" id="arquivo" class="so-leitor" accept="image/*,.pgm,.ppm,.pnm,.tif,.tiff">
+    <label class="btn primario" for="arquivo" title="PNG, JPG, GIF, WebP, BMP, PGM, PPM ou TIFF sem compressão">
+      <svg class="ic" aria-hidden="true"><use href="#i-upload-simple"/></svg>Abrir imagem
+    </label>
+    <div class="grupo-btn" role="group" aria-label="Salvar em PNG">
+      <button class="btn leve" id="salvar-saida" disabled><svg class="ic" aria-hidden="true"><use href="#i-download-simple"/></svg>Salvar resultado</button>
+      <button class="btn leve" id="salvar-entrada" disabled>Salvar entrada</button>
+    </div>
+  </div>
+</header>
+
+<main class="app">
+  <!-- ======================= CONTROLES ======================= -->
+  <aside class="painel trilho" aria-label="Controles">
+    <div class="filtros" role="tablist" aria-label="Filtro">
+      <button class="filtro" id="aba-gabor" role="tab" aria-selected="true" aria-controls="ctl-gabor">
+        <svg class="ic" aria-hidden="true"><use href="#i-waveform"/></svg>
+        <b>Gabor</b><small>Acha bordas e texturas de um tamanho e direção</small>
+      </button>
+      <button class="filtro" id="aba-weickert" role="tab" aria-selected="false" aria-controls="ctl-weickert">
+        <svg class="ic" aria-hidden="true"><use href="#i-drop-half"/></svg>
+        <b>Weickert</b><small>Limpa o ruído sem borrar as bordas</small>
+      </button>
+    </div>
+
+    <section class="bloco" id="ctl-gabor" role="tabpanel" aria-labelledby="aba-gabor"></section>
+    <section class="bloco oculto" id="ctl-weickert" role="tabpanel" aria-labelledby="aba-weickert"></section>
+
+    <section class="bloco" aria-labelledby="t-entrada">
+      <h2 id="t-entrada">Imagem de entrada</h2>
+      <div class="ctl">
+        <div class="linha"><label id="rot-tamanho">Resolução de trabalho</label></div>
+        <div class="seg" id="tamanho" role="radiogroup" aria-labelledby="rot-tamanho">
+          <button role="radio" aria-checked="false" data-valor="256">256</button>
+          <button role="radio" aria-checked="true" data-valor="384">384</button>
+          <button role="radio" aria-checked="false" data-valor="512">512</button>
+        </div>
+        <p class="dica">Maior lado, em pixels. Menor é mais rápido; maior mostra mais detalhe.</p>
+      </div>
+      <div id="ctl-degradacao"></div>
+      <p class="nota">Níveis de cinza de 0 a 255.</p>
+    </section>
+  </aside>
+
+  <!-- ======================= PALCO ======================= -->
+  <div class="palco" id="palco" tabindex="-1">
+    <section class="painel visor-caixa" aria-label="Comparação entre entrada e resultado">
+      <div class="visor-topo">
+        <div class="seg mini" id="vista" role="radiogroup" aria-label="O que mostrar">
+          <button role="radio" aria-checked="false" data-corte="100" disabled>Entrada</button>
+          <button role="radio" aria-checked="true" data-corte="50" disabled>Dividido</button>
+          <button role="radio" aria-checked="false" data-corte="0" disabled>Resultado</button>
+        </div>
+        <p class="dica">Arraste a linha laranja para comparar.</p>
+      </div>
+      <div class="visor sem-imagem" id="visor">
+        <canvas id="tela-entrada" role="img" aria-label="Imagem de entrada"></canvas>
+        <canvas id="tela-saida" role="img" aria-label="Resultado do filtro"></canvas>
+        <div class="divisor"><i></i></div>
+        <span class="rotulo esq">Entrada</span><span class="rotulo dir" id="rotulo-saida">Resultado</span>
+        <div class="vazio" id="vazio">
+          <div>
+            <svg class="ic ic-grande" aria-hidden="true"><use href="#i-image-square"/></svg>
+            <h2>Abra uma imagem para começar</h2>
+            <p>Arraste um arquivo para cá ou escolha um no computador.</p>
+            <label class="btn primario" for="arquivo"><svg class="ic" aria-hidden="true"><use href="#i-upload-simple"/></svg>Escolher imagem</label>
+            <p class="formatos">PNG, JPG, PGM, PPM e TIFF sem compressão</p>
+          </div>
+        </div>
+      </div>
+      <div class="barra oculto" id="barra" role="presentation"><i></i></div>
+      <div class="estado" id="estado"></div>
+      <div class="aviso oculto" id="aviso" role="alert"><svg class="ic" aria-hidden="true"><use href="#i-warning"/></svg><span></span></div>
+    </section>
+
+    <div class="duas">
+      <section class="painel cartao" aria-labelledby="aux-titulo">
+        <h3 id="aux-titulo">Núcleo</h3>
+        <canvas id="tela-aux" width="190" height="190" role="img" aria-label="Visualização do núcleo do filtro"></canvas>
+        <p class="legenda" id="aux-legenda"></p>
+      </section>
+      <section class="painel cartao" aria-labelledby="curva-titulo">
+        <h3 id="curva-titulo">Curva</h3>
+        <canvas id="tela-curva" width="660" height="380" role="img" aria-label="Gráfico do filtro"></canvas>
+        <p class="legenda" id="curva-legenda"></p>
+      </section>
+    </div>
+
+    <section class="painel" aria-label="Detalhes do método">
+      <div class="sub" role="tablist" aria-label="Detalhes">
+        <button class="aba" role="tab" aria-selected="true" data-sub="teoria"><svg class="ic" aria-hidden="true"><use href="#i-function"/></svg>Fundamentação</button>
+        <button class="aba" role="tab" aria-selected="false" data-sub="codigo"><svg class="ic" aria-hidden="true"><use href="#i-code"/></svg>Código em execução</button>
+        <button class="aba" role="tab" aria-selected="false" data-sub="params"><svg class="ic" aria-hidden="true"><use href="#i-sliders-horizontal"/></svg>Parâmetros (Tabela 1)</button>
+      </div>
+      <div class="conteudo" id="sub-conteudo" role="tabpanel"></div>
+    </section>
+  </div>
+</main>
+
+<p class="rodape">Tudo roda no seu navegador: as imagens não saem do computador.</p>
+
+<script src="filtros.js"></script>
+<script src="icones.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
